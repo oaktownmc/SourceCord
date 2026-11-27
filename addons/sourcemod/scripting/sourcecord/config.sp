@@ -90,7 +90,7 @@ SMCResult Cred_NewSection(SMCParser smc, const char[] name, bool opt_quotes) {
 		return SMCParse_Continue;
 	}
 
-	LogError("line %d: cannot nest sections");
+	LogError("line %d: cannot nest sections", g_iCredLineNo);
 
 	return SMCParse_HaltFail;
 }
@@ -155,26 +155,42 @@ void LoadCredentials() {
 	char settingsFile[64];
 	g_cvConfigFile.GetString(settingsFile, sizeof settingsFile);
 
+	bool errored = false;
+
 	SMCError smcerr = smc.ParseFile(configPath);
 	delete smc;
 
 	if (smcerr != SMCError_Okay) {
+		errored = true;
+
 		char errstr[256];
 		SMC_GetErrorString(smcerr, errstr, sizeof errstr);
 
+		bool exists = FileExists(credentialsFile);
+
 		LogError("Failed to load credentials config '%s': %s", configPath, errstr);
+		if (exists)
+			LogMessage("Remove it to auto-generate a new config.", settingsFile);
 		LogMessage("Operational settings (cvars) are located in cfg\\sourcemod\\%s.cfg", settingsFile);
 
-		CreateExampleCredentials(configPath, settingsFile);
+		if (!exists)
+			CreateExampleCredentials(configPath, settingsFile);
 
 		return;
 	}
 
 	if (strlen(g_sBotToken) == 0) {
-		LogError("Bot token not configured! Please edit credentials config: %s", configPath);
+		LogError("Discord.bot_token not configured!");
+		errored = true;
 	}
+
 	if (strlen(g_sChannelId) == 0) {
-		LogError("Channel ID not configured! Please edit credentials config: %s", configPath);
+		LogError("Discord.channel_id not configured!");
+		errored = true;
+	}
+
+	if (errored) {
+		SetFailState("Credentials file failed to load. Please edit credentials config and reload plugin: %s", configPath);
 	}
 
 	LogMessage("Credentials loaded successfully from %s", configPath);

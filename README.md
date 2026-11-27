@@ -1,8 +1,8 @@
 # SourceCord
 
-![Build Release](https://github.com/johnqherman/sourcecord/actions/workflows/build-release.yml/badge.svg)
-![License](https://img.shields.io/github/license/johnqherman/SourceCord)
-![Latest Release](https://img.shields.io/github/v/release/johnqherman/SourceCord)
+![Build Release](https://github.com/oaktownmc/sourcecord/actions/workflows/build-release.yml/badge.svg)
+![License](https://img.shields.io/github/license/oaktownmc/SourceCord)
+![Latest Release](https://img.shields.io/github/v/release/oaktownmc/SourceCord)
 
 ## Overview
 
@@ -40,7 +40,7 @@ Players can talk with Discord users directly from in-game, while Discord message
 
 > SourceCord should work with any Source Engine game that supports SourceMod 1.12+.
 > <br>
-> If you encounter issues, please file a [bug report](https://github.com/johnqherman/SourceCord/issues/new?template=bug_report.yml).
+> If you encounter issues, please file a [bug report](https://github.com/oaktownmc/SourceCord/issues/new?template=bug_report.yml).
 
 ## Requirements
 
@@ -52,7 +52,7 @@ Players can talk with Discord users directly from in-game, while Discord message
 ## Installation
 
 1. Install the [REST in Pawn](https://forums.alliedmods.net/showthread.php?t=298024) extension on your server
-2. Download the latest `sourcecord.smx` from [releases](https://github.com/johnqherman/SourceCord/releases/latest)
+2. Download the latest `sourcecord.smx` from [releases](https://github.com/oaktownmc/SourceCord/releases/latest)
 3. Place `sourcecord.smx` in `addons/sourcemod/plugins/`
 4. Load the plugin with `sm plugins load sourcecord` (it will auto-create both config files)
 5. Edit `cfg/sourcemod/sourcecord.cfg` to set your preferred settings
@@ -85,20 +85,15 @@ sc_allow_role_pings "0"        // Allow in-game players to @mention Discord role
 The plugin will also generate `addons/sourcemod/configs/sourcecord.cfg` to store your credentials.
 
 ```cfg
-"SourceCord"
-{
-    "Discord"
-    {
-        "bot_token"     ""  // Discord Bot token
-        "channel_id"    ""  // Discord channel ID
-        "guild_id"      ""  // Discord guild/server ID
-        "webhook_url"   ""  // Discord Webhook URL
-    }
+"Discord" {
+    "bot_token"     ""  // Discord Bot token
+    "channel_id"    ""  // Discord channel ID
+    "guild_id"      ""  // Discord guild/server ID
+    "webhook_url"   ""  // Discord Webhook URL
+}
 
-    "Steam"
-    {
-        "api_key"       ""  // Steam API key
-    }
+"Steam" {
+    "api_key"       ""  // Steam API key
 }
 ```
 
@@ -255,6 +250,36 @@ Allow in-game players to ping Discord users and roles by typing `@username` or `
 
 ## Building from Source
 
+<details>
+<summary>With sourceknight</summary>
+
+Unfortunately, sourceknight only supports Linux, so you will have to follow the other section if you are not running Linux.
+
+### Prerequisites
+
+- Python 3.8 or above (for sourceknight)
+
+### Compilation
+
+```bash
+# Install sourceknight (on some distros you will need to use pipx instead)
+pip install sourceknight
+
+# Clone repository
+git clone https://github.com/oaktownmc/SourceCord.git
+cd SourceCord
+
+# Compile the plugin
+sourceknight build
+
+# Copy .smx file to server
+cp sourcecord.smx /path/to/addons/sourcemod/plugins/
+```
+</details>
+
+<details>
+<summary>Manually, without sourceknight</summary>
+
 ### Prerequisites
 
 - SourceMod compiler (`spcomp`)
@@ -264,7 +289,7 @@ Allow in-game players to ping Discord users and roles by typing `@username` or `
 
 ```bash
 # Clone repository
-git clone https://github.com/johnqherman/SourceCord.git
+git clone https://github.com/oaktownmc/SourceCord.git
 cd SourceCord
 
 # Copy files to SourceMod's scripting directory
@@ -275,3 +300,5 @@ cp -r sourcecord/ /path/to/addons/sourcemod/scripting/
 cd /path/to/addons/sourcemod/scripting/
 spcomp sourcecord.sp
 ```
+</details>
+

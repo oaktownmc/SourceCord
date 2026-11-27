@@ -21,54 +21,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v7
+
+      - name: Install Sourceknight
+        run: |
+          python -m pip install --upgrade pip
+          pip install sourceknight
+
       - name: Get version from source
         id: get_version
         run: |
-          VERSION=$(grep -oP '#define PLUGIN_VERSION "\K[^"]+' sourcecord.sp)
+          VERSION=$(grep -oP '#define PLUGIN_VERSION "\K[^"]+' addons/sourcemod/scripting/sourcecord.sp)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version found: $VERSION"
 
-      - name: Setup SourceMod
-        run: |
-          wget -q https://sm.alliedmods.net/smdrop/1.11/sourcemod-1.11.0-git6968-linux.tar.gz
-          tar -xzf sourcemod-1.11.0-git6968-linux.tar.gz
-          chmod +x addons/sourcemod/scripting/spcomp
-
-      - name: Install dependencies
-        run: |
-          cd addons/sourcemod/scripting/include
-
-          # install ripext (main file and subdirectory includes)
-          wget -q https://raw.githubusercontent.com/ErikMinekus/sm-ripext/master/pawn/scripting/include/ripext.inc
-          mkdir -p ripext
-          wget -q -O ripext/json.inc https://raw.githubusercontent.com/ErikMinekus/sm-ripext/master/pawn/scripting/include/ripext/json.inc
-          wget -q -O ripext/http.inc https://raw.githubusercontent.com/ErikMinekus/sm-ripext/master/pawn/scripting/include/ripext/http.inc
-
       - name: Compile plugin
         run: |
-          cp sourcecord.sp addons/sourcemod/scripting/
-          cp -r sourcecord/ addons/sourcemod/scripting/
-
-          cd addons/sourcemod/scripting
-          ./spcomp -iinclude sourcecord.sp
-
-          if [ ! -f sourcecord.smx ]; then
-            echo "Compilation failed!!!"
-            exit 1
-          fi
-
-          echo "Compilation successful"
-          ls -la sourcecord.smx
+          sourceknight build
 
       - name: Create release package
         run: |
-          mkdir -p release
-          cp addons/sourcemod/scripting/sourcecord.smx release/
+          mkdir -p release/addons/sourcemod/plugins
+          mkdir -p release/addons/sourcemod/configs
+
+          cp addons/sourcemod/configs/sourcecord.cfg release/addons/sourcemod/configs
+          cp sourcecord.smx release/addons/sourcemod/plugins
 
       - name: Upload to release
         if: github.event_name == 'release'
         run: |
-          gh release upload ${{ github.event.release.tag_name }} ./release/sourcecord.smx
+          gh release upload ${{ github.event.release.tag_name }} ./release/addons/sourcemod/plugins/sourcecord.smx
+          gh release upload ${{ github.event.release.tag_name }} ./release/addons/sourcemod/configs/sourcecord.cfg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -1,5 +1,7 @@
 # SourceCord
 
+This is a fork of [John Q. Herman's plugin](https://github.com/johnqherman/SourceCord).
+
 ![Build Release](https://github.com/oaktownmc/sourcecord/actions/workflows/build-release.yml/badge.svg)
 ![License](https://img.shields.io/github/license/oaktownmc/SourceCord)
 ![Latest Release](https://img.shields.io/github/v/release/oaktownmc/SourceCord)

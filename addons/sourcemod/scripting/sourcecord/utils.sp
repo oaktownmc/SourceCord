@@ -446,7 +446,7 @@ bool IsValidClient(int client) {
 
 void SetUserAgent(HTTPRequest request) {
 	char userAgent[64];
-	Format(userAgent, sizeof userAgent, "SourceCord/%s", PLUGIN_VERSION);
+	Format(userAgent, sizeof userAgent, "DiscordBot (https://github.com/johnqherman/SourceCord, %s)", PLUGIN_VERSION);
 	request.SetHeader("User-Agent", userAgent);
 }
 

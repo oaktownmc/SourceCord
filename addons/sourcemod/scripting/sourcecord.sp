@@ -1,11 +1,12 @@
-#pragma semicolon 1
-#pragma newdecls required
-
 #include <sourcemod>
 #include <sdktools>
 #include <ripext>
+#include <textparse>
 
-#define PLUGIN_VERSION "1.1.2"
+#pragma semicolon 1
+#pragma newdecls required
+
+#define PLUGIN_VERSION "2.0.0"
 
 #include "sourcecord/globals.sp"
 #include "sourcecord/emoji_data.sp"

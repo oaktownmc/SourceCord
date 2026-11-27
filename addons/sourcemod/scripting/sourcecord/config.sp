@@ -62,8 +62,90 @@ void CacheSettings() {
 	}
 }
 
+bool g_bCredHalted;
+bool g_bCredFailed;
+int g_iCredLineNo;
+char g_sCredSection[256];
+
+void Cred_ParseStart(SMCParser smc) {
+	g_bCredHalted = false;
+	g_bCredFailed = false;
+
+	g_sBotToken[0] = 0;
+	g_sChannelId[0] = 0;
+	g_sGuildId[0] = 0;
+	g_sWebhookUrl[0] = 0;
+
+	g_sSteamApiKey[0] = 0;
+}
+
+void Cred_ParseEnd(SMCParser smc, bool halted, bool failed) {
+	g_bCredHalted = halted;
+	g_bCredFailed = failed;
+}
+
+SMCResult Cred_NewSection(SMCParser smc, const char[] name, bool opt_quotes) {
+	if (strlen(g_sCredSection) == 0) {
+		strcopy(g_sCredSection, sizeof g_sCredSection, name);
+		return SMCParse_Continue;
+	}
+
+	LogError("line %d: cannot nest sections");
+
+	return SMCParse_HaltFail;
+}
+
+SMCResult Cred_EndSection(SMCParser smc) {
+	g_sCredSection[0] = 0;
+
+	return SMCParse_Continue;
+}
+
+SMCResult Cred_KeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes) {
+	if (StrEqual(g_sCredSection, "Discord")) {
+		if (StrEqual(key, "bot_token")) {
+			strcopy(g_sBotToken, sizeof g_sBotToken, value);
+			return SMCParse_Continue;
+		} else if (StrEqual(key, "channel_id")) {
+			strcopy(g_sChannelId, sizeof g_sChannelId, value);
+			return SMCParse_Continue;
+		} else if (StrEqual(key, "guild_id")) {
+			strcopy(g_sGuildId, sizeof g_sGuildId, value);
+			return SMCParse_Continue;
+		} else if (StrEqual(key, "webhook_url")) {
+			strcopy(g_sWebhookUrl, sizeof g_sWebhookUrl, value);
+			return SMCParse_Continue;
+		}
+	} else if (StrEqual(g_sCredSection, "Steam")) {
+		if (StrEqual(key, "api_key")) {
+			strcopy(g_sSteamApiKey, sizeof g_sSteamApiKey, value);
+			return SMCParse_Continue;
+		}
+	}
+
+	if (strlen(g_sCredSection) > 0)
+		LogError("line %d: unknown key %s", g_iCredLineNo, key);
+	else
+		LogError("line %d: unknown key %s in section %s", g_iCredLineNo, g_sCredSection);
+	return SMCParse_HaltFail;
+}
+
+SMCResult Cred_RawLine(SMCParser smc, const char[] line, int lineno)
+{
+	g_iCredLineNo = lineno;
+
+	return SMCParse_Continue;
+}
 
 void LoadCredentials() {
+	SMCParser smc = new SMCParser();
+	smc.OnStart = Cred_ParseStart;
+	smc.OnEnd = Cred_ParseEnd;
+	smc.OnEnterSection = Cred_NewSection;
+	smc.OnLeaveSection = Cred_EndSection;
+	smc.OnKeyValue = Cred_KeyValue;
+	smc.OnRawLine = Cred_RawLine;
+
 	char credentialsFile[64];
 	g_cvCredentialsFile.GetString(credentialsFile, sizeof credentialsFile);
 
@@ -73,31 +155,20 @@ void LoadCredentials() {
 	char settingsFile[64];
 	g_cvConfigFile.GetString(settingsFile, sizeof settingsFile);
 
-	KeyValues kv = new KeyValues("SourceCord");
-	if (!kv.ImportFromFile(configPath)) {
-		LogError("Failed to load credentials config: %s", configPath);
+	SMCError smcerr = smc.ParseFile(configPath);
+	delete smc;
+
+	if (smcerr != SMCError_Okay) {
+		char errstr[256];
+		SMC_GetErrorString(smcerr, errstr, sizeof errstr);
+
+		LogError("Failed to load credentials config '%s': %s", configPath, errstr);
 		LogMessage("Operational settings (cvars) are located in cfg\\sourcemod\\%s.cfg", settingsFile);
 
 		CreateExampleCredentials(configPath, settingsFile);
 
-		delete kv;
 		return;
 	}
-
-	if (kv.JumpToKey("Discord", false)) {
-		kv.GetString("bot_token", g_sBotToken, sizeof g_sBotToken, "");
-		kv.GetString("channel_id", g_sChannelId, sizeof g_sChannelId, "");
-		kv.GetString("guild_id", g_sGuildId, sizeof g_sGuildId, "");
-		kv.GetString("webhook_url", g_sWebhookUrl, sizeof g_sWebhookUrl, "");
-		kv.GoBack();
-	}
-
-	if (kv.JumpToKey("Steam", false)) {
-		kv.GetString("api_key", g_sSteamApiKey, sizeof g_sSteamApiKey, "");
-		kv.GoBack();
-	}
-
-	delete kv;
 
 	if (strlen(g_sBotToken) == 0) {
 		LogError("Bot token not configured! Please edit credentials config: %s", configPath);
@@ -118,20 +189,15 @@ void CreateExampleCredentials(const char[] configPath, const char[] settingsFile
 		return;
 	}
 
-	file.WriteLine("\"SourceCord\"");
-	file.WriteLine("{");
-	file.WriteLine("    \"Discord\"");
-	file.WriteLine("    {");
-	file.WriteLine("        \"bot_token\"     \"\"  // Discord Bot token");
-	file.WriteLine("        \"channel_id\"    \"\"  // Discord channel ID");
-	file.WriteLine("        \"guild_id\"      \"\"  // Discord guild/server ID");
-	file.WriteLine("        \"webhook_url\"   \"\"  // Discord Webhook URL");
-	file.WriteLine("    }");
-	file.WriteLine("    ");
-	file.WriteLine("    \"Steam\"");
-	file.WriteLine("    {");
-	file.WriteLine("        \"api_key\"       \"\"  // Steam API key");
-	file.WriteLine("    }");
+	file.WriteLine("\"Discord\" {");
+	file.WriteLine("    \"bot_token\"     \"\"  // Discord Bot token");
+	file.WriteLine("    \"channel_id\"    \"\"  // Discord channel ID");
+	file.WriteLine("    \"guild_id\"      \"\"  // Discord guild/server ID");
+	file.WriteLine("    \"webhook_url\"   \"\"  // Discord Webhook URL");
+	file.WriteLine("}");
+	file.WriteLine("");
+	file.WriteLine("\"Steam\" {");
+	file.WriteLine("    \"api_key\"       \"\"  // Steam API key");
 	file.WriteLine("}");
 
 	file.Close();
